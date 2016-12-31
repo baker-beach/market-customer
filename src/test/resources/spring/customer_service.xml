@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+		http://www.springframework.org/schema/data/mongo http://www.springframework.org/schema/data/mongo/spring-mongo.xsd">
+
+	<bean id="customerService"
+		class="com.bakerbeach.market.customer.service.CustomerServiceImpl">
+		<property name="sequenceService" ref="sequenceService" />
+		<property name="customerDao" ref="customerDao" />
+	</bean>
+
+	<bean id="customerDao"
+		class="com.bakerbeach.market.customer.service.CustomerMongoDao">
+		<property name="collectionName" value="customer" />
+		<property name="mongoTemplate" ref="mongoCustomerTemplate" />
+	</bean>
+
+	<mongo:mongo id="mongoCustomer" host="${mongo.customer.host}"
+		port="${mongo.customer.port}">
+		<mongo:options connections-per-host="${mongo.customer.connectionsPerHost}"
+			threads-allowed-to-block-for-connection-multiplier="${mongo.customer.threadsAllowedToBlockForConnectionMultiplier}"
+			connect-timeout="${mongo.customer.connectTimeout}"
+			max-wait-time="${mongo.customer.maxWaitTime}"
+			auto-connect-retry="${mongo.customer.autoConnectRetry}"
+			socket-keep-alive="${mongo.customer.socketKeepAlive}" socket-timeout="${mongo.customer.socketTimeout}"
+			slave-ok="${mongo.customer.slaveOk}" write-number="1" write-timeout="0"
+			write-fsync="true" />
+	</mongo:mongo>
+	<mongo:db-factory mongo-ref="mongoCustomer"
+		id="mongoCustomerDbFactory" dbname="${mongo.customer.dbName}"
+		username="${mongo.customer.dbUser}" password="${mongo.customer.dbPwd}" />
+	<bean id="mongoCustomerTemplate" class="org.springframework.data.mongodb.core.MongoTemplate">
+		<constructor-arg name="mongoDbFactory" ref="mongoCustomerDbFactory" />
+	</bean>
+
+
+</beans>
