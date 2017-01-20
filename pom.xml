@@ -22,8 +22,13 @@
 			<artifactId>market-sequence-api</artifactId>
             <version>1.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.activemq</groupId>
+			<artifactId>activemq-camel</artifactId>
+			<version>5.11.1</version>
+			<scope>test</scope>
+		</dependency>
     </dependencies>
 	<build>
-    </build>
-	
+    </build>	
 </project>
