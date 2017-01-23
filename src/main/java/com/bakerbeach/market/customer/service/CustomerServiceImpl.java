@@ -13,6 +13,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.util.DigestUtils;
 
 import com.bakerbeach.market.core.api.model.Customer;
@@ -43,7 +44,8 @@ public class CustomerServiceImpl implements CustomerService {
 
 	private TaxCode defaultTaxCode = TaxCode.NORMAL;
 	
-	@Autowired(required=false)
+	@Autowired
+	@Qualifier("producerTemplate")
 	private ProducerTemplate producerTemplate;
 
 	@Override
