@@ -7,15 +7,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-
+import org.apache.camel.ProducerTemplate;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessagePostProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.util.DigestUtils;
 
 import com.bakerbeach.market.core.api.model.Customer;
@@ -46,9 +44,9 @@ public class CustomerServiceImpl implements CustomerService {
 
 	private TaxCode defaultTaxCode = TaxCode.NORMAL;
 	
-	private JmsTemplate newPasswordJmsTemplate;
-	
-	private JmsTemplate newCustomerJmsTemplate;
+	@Autowired
+	@Qualifier("producerTemplate")
+	private ProducerTemplate producerTemplate;
 
 	@Override
 	public void update(Customer customer) throws CustomerServiceException {
@@ -109,25 +107,22 @@ public class CustomerServiceImpl implements CustomerService {
 		} catch (SequenceServiceException e1) {
 			throw new CustomerServiceException(new Text("error.customer.register"));
 		}
+		
 		try {
 			customerDao.save(customer);
+			
 			Map<String, String> payload = new HashMap<String, String>();
 			payload.put("customer_id", customer.getId());
 			payload.put("shop_code", shopCode);
-			newCustomerJmsTemplate.convertAndSend(payload, new MessagePostProcessor() {
-				@Override
-				public Message postProcessMessage(Message msg) throws JMSException {
-					msg.setJMSType("WELCOME");
-					return msg;
-				}
-			});
+			
+			producerTemplate.sendBody("direct:registration", payload);
+
 			return customer;
 		} catch (DuplicateEntry e) {
 			throw new CustomerServiceException(new Text("error.customer.register.exist"));
 		} catch (CustomerDaoException e) {
 			throw new CustomerServiceException(new Text("error.customer.register"));
 		}
-
 	}
 
 	@Override
@@ -177,7 +172,6 @@ public class CustomerServiceImpl implements CustomerService {
 
 	@Override
 	public void renewPassword(String email, String shopCode) throws CustomerServiceException {
-
 		try {
 			Customer customer = findByEmail(email.toLowerCase(), shopCode);
 
@@ -188,19 +182,13 @@ public class CustomerServiceImpl implements CustomerService {
 			payload.put("password", newPassword);
 			payload.put("customer_id", customer.getId());
 			payload.put("shop_code", shopCode);
-			newPasswordJmsTemplate.convertAndSend(payload, new MessagePostProcessor() {
-				@Override
-				public Message postProcessMessage(Message msg) throws JMSException {
-					msg.setJMSType("PASSWORD");
-					return msg;
-				}
-			});
 
+			producerTemplate.sendBody("direct:password", payload);
 		} catch (CustomerServiceException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new CustomerServiceException(e);
-		}
+		}		
 	}
 
 	public CustomerDao getCustomerDao() {
@@ -259,24 +247,6 @@ public class CustomerServiceImpl implements CustomerService {
 	@Override
 	public Customer createAnonymousCustomer() {
 		return new AnonymousCustomer();
-	}
-
-	public void setNewPasswordJmsTemplate(JmsTemplate newPasswordJmsTemplate) {
-		this.newPasswordJmsTemplate = newPasswordJmsTemplate;
-	}
-
-	/**
-	 * @return the newCustomerJmsTemplate
-	 */
-	public JmsTemplate getNewCustomerJmsTemplate() {
-		return newCustomerJmsTemplate;
-	}
-
-	/**
-	 * @param newCustomerJmsTemplate the newCustomerJmsTemplate to set
-	 */
-	public void setNewCustomerJmsTemplate(JmsTemplate newCustomerJmsTemplate) {
-		this.newCustomerJmsTemplate = newCustomerJmsTemplate;
 	}
 	
 }
