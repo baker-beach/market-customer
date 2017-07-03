@@ -166,36 +166,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 	@Override
 	public Customer register(String email, String password, List<String> shopCode) throws CustomerServiceException {
-		CustomerImpl customer = new CustomerImpl();
-		customer.setEmail(email.toLowerCase());
-		String salt = RandomStringUtils.random(SALT_LENGTH, "abcdefghijklmnopqrstuvwxyz0123456789");
-		customer.setPassword(generateHash(password, salt) + ":" + salt);
-		customer.getValidShopCodes().addAll(shopCode);
-		customer.setTaxCode(getDefaultTaxCode());
-		customer.setPriceGroup(getDefaultPriceGroup());
-		customer.setCreatedAt(new Date());
-		customer.setUpdatedAt(new Date());
-		try {
-			customer.setId(sequenceService.generateId(CUSTOMER_SEQUENCE_KEY).toString());
-		} catch (SequenceServiceException e1) {
-			throw new CustomerServiceException(new Text("error.customer.register"));
-		}
-		
-		try {
-			customerDao.save(customer);
-			
-			Map<String, String> payload = new HashMap<String, String>();
-			payload.put("customer_id", customer.getId());
-			payload.put("shop_code", shopCode.get(0));
-			
-			producerTemplate.sendBody("direct:registration", payload);
-			
-			return customer;
-		} catch (DuplicateEntry e) {
-			throw new CustomerServiceException(new Text("error.customer.register.exist"));
-		} catch (CustomerDaoException e) {
-			throw new CustomerServiceException(new Text("error.customer.register"));
-		}
+		return register(email,password,shopCode,"","");
 	}
 	
 	@Override
