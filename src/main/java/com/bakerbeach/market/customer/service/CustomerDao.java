@@ -5,19 +5,15 @@ import java.util.Map;
 
 import com.bakerbeach.market.core.api.model.Customer;
 
-public interface CustomerDao {
+public interface CustomerDao<C extends Customer> {
 
-	Customer findById(String id) throws CustomerDaoException;
+	C findById(String id) throws CustomerDaoException;
 
-	Collection<Customer> findById(Collection<String> customerIdList, Map<String, Object> orderBy, Integer limit,
+	Collection<C> findById(Collection<String> customerIdList, Map<String, Object> orderBy, Integer limit,
 			Integer offset) throws CustomerDaoException;
 
-	Collection<Customer> findById(Collection<String> customerIdList) throws CustomerDaoException;
+	C findByEmail(String email, String shopCode) throws CustomerDaoException;
 
-	Customer findByEmail(String email, String shopCode) throws CustomerDaoException;
-
-	void save(Customer customer) throws CustomerDaoException;
-
-	void update(Customer customer) throws CustomerDaoException;
+	void saveOrUpdate(Customer customer) throws CustomerDaoException;
 
 }
