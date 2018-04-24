@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import com.bakerbeach.market.core.api.model.Customer;
+import com.bakerbeach.market.customer.api.model.ResetPasswordToken;
+import com.bakerbeach.market.customer.model.ResetPasswordTokenImpl;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -43,25 +45,26 @@ public class CustomerMongoDao implements CustomerDao {
 			throw new CustomerDaoException(e);
 		}
 	}
-	
+
 	@Override
-	public Collection<Customer> findById(Collection<String> customerIdList, Map<String, Object> orderBy, Integer limit, Integer offset) throws CustomerDaoException {
+	public Collection<Customer> findById(Collection<String> customerIdList, Map<String, Object> orderBy, Integer limit,
+			Integer offset) throws CustomerDaoException {
 		try {
 			QueryBuilder qb = QueryBuilder.start();
 			qb.and(CustomerMongoConverter.KEY_ID).in(customerIdList);
-			
-			return find(qb, null, (orderBy != null)? new BasicDBObject(orderBy) : null, limit, offset);
+
+			return find(qb, null, (orderBy != null) ? new BasicDBObject(orderBy) : null, limit, offset);
 		} catch (Exception e) {
 			log.error(ExceptionUtils.getMessage(e));
 			throw new CustomerDaoException(e);
-		}		
+		}
 	}
-	
+
 	@Override
 	public Collection<Customer> findById(Collection<String> customerIdList) throws CustomerDaoException {
 		return findById(customerIdList, null, null, null);
 	}
-	
+
 	@Override
 	public Customer findByEmail(String email, String shopCode) throws CustomerDaoException {
 		try {
@@ -104,22 +107,64 @@ public class CustomerMongoDao implements CustomerDao {
 			throw new CustomerDaoException(e);
 		}
 	}
-	
+
 	private List<Customer> find(QueryBuilder qb, DBObject keys, DBObject orderBy, Integer limit, Integer offset) {
 		DBCursor cur = null;
 		if (orderBy != null)
 			cur = getDBCollection().find(qb.get(), keys).sort(orderBy);
 		else
 			cur = getDBCollection().find(qb.get(), keys);
-		
+
 		List<Customer> customerList = new ArrayList<Customer>();
 		for (Iterator<DBObject> it = cur.iterator(); it.hasNext();) {
 			DBObject source = it.next();
 			Customer customer = CustomerMongoConverter.decode(source);
 			customerList.add(customer);
 		}
-		
+
 		return customerList;
+	}
+
+	@Override
+	public void deleteResetPasswordToken(String tokenId) throws CustomerDaoException {
+		try {
+			QueryBuilder qb = QueryBuilder.start();
+			qb.and(ResetPasswordTokenMongoConverter.KEY_ID).is(tokenId);
+			mongoTemplate.getCollection("reset_password_token").remove(qb.get());			
+		} catch (Exception e) {
+			log.error(ExceptionUtils.getMessage(e));
+			throw new CustomerDaoException(e);
+		}
+	}	
+	
+	@Override
+	public ResetPasswordToken getResetPasswordToken(String tokenId) throws CustomerDaoException {
+		try {
+			QueryBuilder qb = QueryBuilder.start();
+			qb.and(ResetPasswordTokenMongoConverter.KEY_ID).is(tokenId);
+			DBObject dbo = mongoTemplate.getCollection("reset_password_token").findOne(qb.get());
+			if (dbo != null) {
+				return ResetPasswordTokenMongoConverter.decode(dbo);
+			} else {
+				throw new CustomerDaoException.EntryNotFound();
+			}
+		} catch (Exception e) {
+			log.error(ExceptionUtils.getMessage(e));
+			throw new CustomerDaoException(e);
+		}
+	}
+
+	@Override
+	public void saveResetPasswordToken(ResetPasswordTokenImpl token) throws CustomerDaoException {
+		try {
+			mongoTemplate.getCollection("reset_password_token").save(ResetPasswordTokenMongoConverter.encode(token));
+		} catch (DuplicateKeyException e) {
+			log.warn(ExceptionUtils.getMessage(e));
+			throw new CustomerDaoException.DuplicateEntry(e);
+		} catch (Exception e) {
+			log.error(ExceptionUtils.getMessage(e));
+			throw new CustomerDaoException(e);
+		}
 	}
 
 	public MongoTemplate getMongoTemplate() {

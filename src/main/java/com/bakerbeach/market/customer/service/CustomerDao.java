@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.bakerbeach.market.core.api.model.Customer;
+import com.bakerbeach.market.customer.api.model.ResetPasswordToken;
+import com.bakerbeach.market.customer.model.ResetPasswordTokenImpl;
 
 public interface CustomerDao {
 
@@ -19,5 +21,11 @@ public interface CustomerDao {
 	void save(Customer customer) throws CustomerDaoException;
 
 	void update(Customer customer) throws CustomerDaoException;
+
+	void saveResetPasswordToken(ResetPasswordTokenImpl token) throws CustomerDaoException;
+
+	ResetPasswordToken getResetPasswordToken(String tokenId) throws CustomerDaoException;
+
+	void deleteResetPasswordToken(String tokenId) throws CustomerDaoException;
 
 }

@@ -1,12 +1,15 @@
 package com.bakerbeach.market.customer.service;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -21,11 +24,13 @@ import com.bakerbeach.market.core.api.model.Customer;
 import com.bakerbeach.market.core.api.model.PriceGroup;
 import com.bakerbeach.market.core.api.model.TaxCode;
 import com.bakerbeach.market.core.api.model.Text;
+import com.bakerbeach.market.customer.api.model.ResetPasswordToken;
 import com.bakerbeach.market.customer.api.service.CustomerService;
 import com.bakerbeach.market.customer.api.service.CustomerServiceException;
 import com.bakerbeach.market.customer.api.service.CustomerServiceException.CustomerNotFoundException;
 import com.bakerbeach.market.customer.model.AnonymousCustomer;
 import com.bakerbeach.market.customer.model.CustomerImpl;
+import com.bakerbeach.market.customer.model.ResetPasswordTokenImpl;
 import com.bakerbeach.market.customer.service.CustomerDaoException.DuplicateEntry;
 import com.bakerbeach.market.sequence.service.SequenceService;
 import com.bakerbeach.market.sequence.service.SequenceServiceException;
@@ -235,6 +240,56 @@ public class CustomerServiceImpl implements CustomerService {
 		}		
 	}
 
+	@Override
+	public void deleteResetPasswordToken(String tokenId) throws CustomerServiceException {
+		try {
+			customerDao.deleteResetPasswordToken(tokenId);
+		} catch (Exception e) {
+			throw new CustomerServiceException(e);
+		}
+	}
+	
+	@Override
+	public ResetPasswordToken getResetPasswordToken(String tokenId) throws CustomerServiceException {
+		try {			
+			ResetPasswordToken token = customerDao.getResetPasswordToken(tokenId);
+			return token;			
+		} catch (Exception e) {
+			throw new CustomerServiceException(e);
+		}
+	}
+	
+	@Override
+	public String createResetPasswordToken(String email, String shopCode) throws CustomerServiceException {
+		try {
+			Customer customer = findByEmail(email.toLowerCase(), shopCode);
+			
+			GregorianCalendar cal = new GregorianCalendar();
+			cal.add(Calendar.MINUTE, 15);
+			
+			ResetPasswordTokenImpl token = new ResetPasswordTokenImpl();
+			token.setId(UUID.randomUUID().toString());
+			token.setCustomerId(customer.getId());
+			token.setExpiresAt(cal.getTime());
+			token.setShop(shopCode);
+
+			customerDao.saveResetPasswordToken(token);
+						
+			Map<String, String> payload = new HashMap<String, String>();
+			payload.put("password", token.getId());
+			payload.put("customer_id", customer.getId());
+			payload.put("shop_code", shopCode);
+
+			producerTemplate.sendBody("direct:password", payload);
+
+			return token.getId();
+		} catch (CustomerServiceException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new CustomerServiceException(e);
+		}
+	}
+	
 	public CustomerDao getCustomerDao() {
 		return customerDao;
 	}
